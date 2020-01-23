@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mutant-test
+  labels:
+    mutateme: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sleep
+  namespace: mutant-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sleep
+  template:
+    metadata:
+      labels:
+        app: sleep
+    spec:
+      containers:
+        - name: sleep
+          image: tutum/curl
+          command: ["/bin/sleep","infinity"]
+          imagePullPolicy: IfNotPresent
