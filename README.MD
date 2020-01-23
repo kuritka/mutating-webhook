@@ -149,3 +149,10 @@ age\":\"tutum/curl\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"sleep\"}]}}
    }
 }
 ```
+
+
+### todo:
+ - check what happens when webhook request fails (restart policy always? )
+ - what if deployment fails ? (crash-loop)
+ - circular dependency ? 
+ - 10k pods depending on our webhook ? 

@@ -8,36 +8,35 @@ import (
 	"time"
 
 	"mutating-webhook/common/guards"
-
-	"github.com/rs/zerolog"
+	"mutating-webhook/common/log"
 )
 
-var Log *zerolog.Logger
-
+var logger = log.Log
 const port = 8443
 
-func handleRoot(w http.ResponseWriter, r *http.Request) {
+func handleJson(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "hello %q", html.EscapeString(r.URL.Path))
 }
 
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 
-	Log.Info().Msg("handle mutate")
 	// read the body / request
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		Log.Err(err)
+		guards.FailOnError(err, "reading Body")
 	}
 
-	// mutate the request
 	fmt.Println(string(body))
+
+	// mutate the request
+	// body, err = mutant.Mutate(body)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-
+		guards.FailOnError(err, "mutate")
 	}
 
 	// and write it back
@@ -49,8 +48,7 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", handleRoot)
+	mux.HandleFunc("/json", handleJson)
 	mux.HandleFunc("/mutate", handleMutate)
 
 	s := &http.Server{
@@ -61,7 +59,7 @@ func main() {
 		MaxHeaderBytes: 1 << 20, // 1048576
 	}
 
-	Log.Info().Msgf("Listening on %v:",port)
+	logger.Info().Msgf("Listening on %v:",port)
 	err := s.ListenAndServeTLS("/etc/webhook/certs/cert.pem","/etc/webhook/certs/key.pem" )
 	guards.FailOnError(err,"server stopped")
 }
