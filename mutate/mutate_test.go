@@ -1,60 +1,54 @@
-# mutating-webhook
+package mutate
 
-## instructions
+import (
+	"encoding/json"
+	"fmt"
+	"testing"
 
-- Setup a local Kubernetes cluster using Kind
-
-- Write an admission webhook server that will add a label of your choosing to all pods created (https://github.com/banzaicloud/admission-webhook-example is a good start)
-
-![](https://d33wubrfki0l68.cloudfront.net/af21ecd38ec67b3d81c1b762221b4ac777fcf02d/7c60e/images/blog/2019-03-21-a-guide-to-kubernetes-admission-controllers/admission-controller-phases.png)
-
-- Add the necessary mutating admission webhook configuration to your Kubernetes cluster to get it working
-
-- Record a screencast of your admission webhook in action
-
-- Send us a link to the video as well as a public GitHub repo with the code to implement the above
+	"github.com/stretchr/testify/assert"
+)
 
 
 
 
-## How to start
-
-### install local cluster
-
-install and start [kind](https://kind.sigs.k8s.io/) by `go get sigs.k8s.io/kind@v0.7.0 && kind create cluster`
-and verify that `kind-kind` context is properly set `kubectl config get-contexts` 
-
-
-check if `admissionregistration` is installed by running `kubectl api-versions | grep admissionregistration.k8s.io/v1beta1`
- 
-
-### specify private registry
-
-Run following command to enable [private registry](https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod)
-```bash
-kubectl create secret docker-registry <name> --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD
-```
-
-All secrets are within [azure registry](https://portal.azure.com/#@deutscheboerse.onmicrosoft.com/resource/subscriptions/28ed73f5-4bb4-4064-bf48-b520cc638475/resourceGroups/rg-onho-sbx/providers/Microsoft.ContainerRegistry/registries/acronhosbx/accessKey)
-
-### MutatingWebhookConfiguration.webhooks.caBundle 
-
-Fill caBundle property to make apiserver trust the TLS certificate of the webhook server.
-Because we’ve signed our certificates with the Kubernetes API we can use the CA cert from our kubeconfig.
-```bash
-kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
-``` 
-Returned value is base64 encoded certificate. 
+func TestAbc(t *testing.T){
+	px := make([]patchOperation,0)
+	values := make(map[string]string)
+	values["key1"] = "value1"
+	values["key2"] = "value2"
+	p := patchOperation{
+		Op:    "add",
+		Path:  "/metadata/labels",
+		Value: values,
+	}
+	px = append(px,p )
+	x,_ := json.Marshal(px)
+	fmt.Println(string(x))
 
 
 
-## TEST DATA
+	var patches []map[string]string
+	patch := map[string]string{
+		"op":    "add",
+		"path":  fmt.Sprintf("/metadata/labels"),
+		"value": "{ \"key1\": \"value1\" }",
+	}
+	patches = append(patches, patch)
+	x, _ = json.Marshal(patches)
+	fmt.Println(string(x))
+}
 
-Following json is prettify input for for `sleep` deployment 
+func TestMutate(t *testing.T) {
+	//arrange
+	//act
+	_, err := Mutate([]byte(input))
 
-### AdmissionReview - request
+	//assert
+	assert.NoError(t,err)
+}
 
-```json
+
+const input= `
 { 
    "kind":"AdmissionReview",
    "apiVersion":"admission.k8s.io/v1beta1",
@@ -148,17 +142,5 @@ Following json is prettify input for for `sleep` deployment
       "dryRun":false
    }
 }
-```
+`
 
-
-### todo:
- - check what happens when webhook request fails (restart policy always? )
- - what if deployment fails ? (crash-loop)
- - circular dependency ? 
- - 10k pods depending on our webhook ? 
- - multiple containers in pod ?  - np, it is about pods, not about containers.. 
- - what about deployments ? 
- - look at this: imagePullPolicy: Always
- - check with multiple types of Kinds (Deploy, POD)
- - mutate as strategy, refactor 
- 

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"html"
 	"io/ioutil"
+	"mutating-webhook/mutate"
 	"net/http"
 	"time"
 
@@ -14,9 +14,6 @@ import (
 var logger = log.Log
 const port = 8443
 
-func handleJson(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello %q", html.EscapeString(r.URL.Path))
-}
 
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 
@@ -26,29 +23,31 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		guards.FailOnError(err, "reading Body")
+		logger.Err(err).Msg( "can't reading request body")
 	}
 
-	fmt.Println(string(body))
+	fmt.Printf("REQUEST BODY :\n%v\n\n", string(body))
+	body, err = mutate.Mutate(body)
+	fmt.Printf("REPOSNSE BODY :\n%v\n\n", string(body))
 
-	// mutate the request
-	// body, err = mutant.Mutate(body)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		guards.FailOnError(err, "mutate")
+		logger.Err(err).Msg( "can't mutate request body")
 	}
 
 	// and write it back
 	w.WriteHeader(http.StatusOK)
-	w.Write(body)
+	if _, err = w.Write(body); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		logger.Err(err).Msg( "can't send AdmissionReview")
+	}
 }
 
 
 func main() {
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/json", handleJson)
 	mux.HandleFunc("/mutate", handleMutate)
 
 	s := &http.Server{

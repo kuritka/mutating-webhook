@@ -2,8 +2,6 @@ package guards
 
 import (
 	"errors"
-	"os"
-
 	"mutating-webhook/common/log"
 )
 
@@ -31,18 +29,9 @@ func FailOnLessOrEqualToZero(num int, msg string) {
 }
 
 
-
 func FailOnEmptyString(str string, msg string ){
 	if str == "" {
 		fail(errors.New(msg))
-	}
-}
-
-func FailIfFileNotExist(path string, msg string) {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			fail(errors.New(msg))
-		}
 	}
 }
 
