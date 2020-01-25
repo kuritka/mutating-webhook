@@ -58,6 +58,7 @@ func main() {
 		MaxHeaderBytes: 1 << 20, // 1048576
 	}
 
+	//don't expect changes in volumeMounts,  keeping paths as constants
 	logger.Info().Msgf("Listening on %v:",port)
 	err := s.ListenAndServeTLS("/etc/webhook/certs/cert.pem","/etc/webhook/certs/key.pem" )
 	guards.FailOnError(err,"server stopped")

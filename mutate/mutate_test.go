@@ -1,8 +1,6 @@
 package mutate
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,33 +8,6 @@ import (
 
 
 
-
-func TestAbc(t *testing.T){
-	px := make([]patchOperation,0)
-	values := make(map[string]string)
-	values["key1"] = "value1"
-	values["key2"] = "value2"
-	p := patchOperation{
-		Op:    "add",
-		Path:  "/metadata/labels",
-		Value: values,
-	}
-	px = append(px,p )
-	x,_ := json.Marshal(px)
-	fmt.Println(string(x))
-
-
-
-	var patches []map[string]string
-	patch := map[string]string{
-		"op":    "add",
-		"path":  fmt.Sprintf("/metadata/labels"),
-		"value": "{ \"key1\": \"value1\" }",
-	}
-	patches = append(patches, patch)
-	x, _ = json.Marshal(patches)
-	fmt.Println(string(x))
-}
 
 func TestMutate(t *testing.T) {
 	//arrange

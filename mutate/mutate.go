@@ -10,10 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type patchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
+type addOperation struct {
+	Operation string      `json:"op"`
+	Path      string      `json:"path"`
+	Value     interface{} `json:"value,omitempty"`
 }
 
 func Mutate(body []byte) ([]byte, error){
@@ -45,11 +45,11 @@ func Mutate(body []byte) ([]byte, error){
 	}
 
 	var err error
-	px := make([]patchOperation,0)
-	patch :=  patchOperation{
-		Op:    "add",
-		Path:  "/metadata/labels",
-		Value: map[string]string {"key1":"value1"},
+	px := make([]addOperation,0)
+	patch :=  addOperation{
+		Operation: "add",
+		Path:      "/metadata/labels",
+		Value:     map[string]string {"environment":"dev"},
 	}
 	px = append(px,patch )
 	response.Patch, err = json.Marshal(px)

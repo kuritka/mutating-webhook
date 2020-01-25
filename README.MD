@@ -37,14 +37,12 @@ kubectl create secret docker-registry <name> --docker-server=DOCKER_REGISTRY_SER
 
 All secrets are within [azure registry](https://portal.azure.com/#@deutscheboerse.onmicrosoft.com/resource/subscriptions/28ed73f5-4bb4-4064-bf48-b520cc638475/resourceGroups/rg-onho-sbx/providers/Microsoft.ContainerRegistry/registries/acronhosbx/accessKey)
 
-### MutatingWebhookConfiguration.webhooks.caBundle 
+### build and deploy 
 
-Fill caBundle property to make apiserver trust the TLS certificate of the webhook server.
-Because we’ve signed our certificates with the Kubernetes API we can use the CA cert from our kubeconfig.
+run this:
 ```bash
-kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'
-``` 
-Returned value is base64 encoded certificate. 
+./build.sh cicd v1.18
+```
 
 
 
@@ -152,13 +150,18 @@ Following json is prettify input for for `sleep` deployment
 
 
 ### todo:
- - check what happens when webhook request fails (restart policy always? )
- - what if deployment fails ? (crash-loop)
- - circular dependency ? 
- - 10k pods depending on our webhook ? 
- - multiple containers in pod ?  - np, it is about pods, not about containers.. 
- - what about deployments ? 
- - look at this: imagePullPolicy: Always
- - check with multiple types of Kinds (Deploy, POD)
- - mutate as strategy, refactor 
+ - [ ] check what happens when webhook request fails (restart policy always? )
+ - [ ] what if deployment fails ? (crash-loop)
+ - [ ] circular dependency ? 
+ - [ ] 10k pods depending on our webhook ? 
+ - [ ] multiple containers in pod ?  - np, it is about pods, not about containers.. 
+ - [ ] what about deployments ? 
+ - [ ] look at this: imagePullPolicy: Always
+ - [ ] check with multiple types of Kinds (Deploy, POD)
+ - [ ] mutate as strategy, refactor 
+ - [ ] co novy namespace ?
+ - [ ] What if label exists?
+ - [ ] konfigurace of labels would be part of MutatingWebhookConfiguration
+ - [ ] build should inject caBundle, build version and annotation 
+
  

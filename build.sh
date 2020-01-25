@@ -2,14 +2,14 @@
 
 set -e
 # i.e.
-# PS /home/michal/workspace/onho.io> ./scripts/build.sh ci v0.1
+# PS /home/michal/workspace/onho.io> ./scripts/build.sh cid v0.1
 usage(){
         cat <<EOF
         Usage: $(basename "$0") <COMMAND>  <TAG>
         Commands:
             ci                run build process with new version and properly tag
             cd                deploy app to container registry, redeploy k8s, install certificates
-            cid               ci+cd
+            cicd               ci+cd
 
         Command arguments:
             ci
@@ -18,7 +18,7 @@ usage(){
             cd
                 <TAG> required   docker tag, if empty than :latest is used
 
-            cid
+            cicd
                 <TAG> required   docker tag, if empty than :latest is used
 EOF
 }
@@ -27,14 +27,6 @@ EOF
 panic() {
   (>&2 echo "$@")
   exit 1
-}
-
-
-dir_exists(){
-	local path="$1"
-    	if [[ ! -d "$path" ]]; then
-  		panic "$path doesn't exists"
-     	fi
 }
 
 check_kube_cli(){
@@ -54,18 +46,39 @@ cat <<EOF
 ***************************************************************
 EOF
 
-    docker build . -t acronhosbx.azurecr.io/mutating-webhook:${tag} --no-cache
+    docker build . -t acronhosbx.azurecr.io/mutating-webhook:"${tag}" --no-cache
 
-    docker push acronhosbx.azurecr.io/mutating-webhook:${tag}
+    docker push acronhosbx.azurecr.io/mutating-webhook:"${tag}"
 
 }
+
+
+
+cd(){
+cat <<EOF
+***************************************************************
+    deploying mutating-webhook
+***************************************************************
+EOF
+    check_kube_cli
+
+    caBundle="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')"
+    yaml="$(cat ./deployment/deployment.yaml )"
+    caBundle="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')"
+    buildVersion="$tag"_$(date '+%y%m.%d.%H%M')
+    bind="$(echo "$yaml" | sed -e "s|\${tag}|${tag}|g" | sed -e "s|\${caBundle}|${caBundle}|g" | sed -e "s|\${buildVersion}|${buildVersion}|g")"
+
+cat <<EOF | kubectl apply -f -
+`echo "$bind"`
+EOF
+}
+
+
 
 if [[ "$#" -lt 2 ]]; then
   usage
   exit 1
 fi
-
-
 tag=${2}
 
 case "$1" in
@@ -75,7 +88,7 @@ case "$1" in
     "cd")
       cd
     ;;
-    "cid")
+    "cicd")
         ci
         cd
     ;;
