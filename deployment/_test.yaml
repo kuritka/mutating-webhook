@@ -4,24 +4,50 @@ metadata:
   name: mutant-test
   labels:
     mutateme: enabled
+#---
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: sleep
+#  namespace: mutant-test
+#  labels:
+#    app: sleep
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: sleep
+#  template:
+#    metadata:
+#      labels:
+#        app: sleep
+#    spec:
+#      containers:
+#        - name: sleep
+#          image: tutum/curl
+#          command: ["/bin/sleep","infinity"]
+#          imagePullPolicy: IfNotPresent
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sleep
+  name: beep
   namespace: mutant-test
+  labels:
+    app: beep
+    product: EDTderivates
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sleep
+      app: beep
   template:
     metadata:
       labels:
-        app: sleep
+        app: beep
     spec:
       containers:
-        - name: sleep
+        - name: beep
           image: tutum/curl
           command: ["/bin/sleep","infinity"]
           imagePullPolicy: IfNotPresent

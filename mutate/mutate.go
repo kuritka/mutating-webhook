@@ -3,60 +3,96 @@ package mutate
 import (
 	"encoding/json"
 	"fmt"
-	"mutating-webhook/common/guards"
 
 	v1beta1 "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type addOperation struct {
+type patchOperation struct {
 	Operation string      `json:"op"`
 	Path      string      `json:"path"`
 	Value     interface{} `json:"value,omitempty"`
 }
 
+
+//func getLabels(existingLabels map[string]string, added map[string]string) (labelsToAdd map[string]string, labelsToReplace map[string]string) {
+//	add := make(map[string]string)
+//	replace := make(map[string]string)
+//	for key, value := range added {
+//		if existingLabels == nil || existingLabels[key] == "" {
+//			add[key] = value
+//			continue
+//		}
+//		replace[key] = value
+//	}
+//	return add,replace
+//}
+
+func getLabels(existingLabels map[string]string, added map[string]string) (labels map[string]string) {
+	newMap := make(map[string]string, len(existingLabels) + len(added))
+	for key, value := range existingLabels {
+		newMap[key] = value
+	}
+	for key, value := range added {
+		newMap[key] = value
+	}
+	return newMap
+}
+
+
+func updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
+	labels := getLabels(existingLabels,added)
+	patch = append(patch, patchOperation{
+		Operation: "remove",
+		Path:      "/metadata/labels",
+	})
+	patch = append(patch, patchOperation{
+		Operation: "add",
+		Path:      "/metadata/labels",
+		Value:     labels,
+	})
+	return patch
+}
+
+
 func Mutate(body []byte) ([]byte, error){
-	guards.FailOnNil(body, "body cn't be nil")
 
 	review := new(v1beta1.AdmissionReview)
 	if err := json.Unmarshal(body, review); err != nil {
 		return body,  fmt.Errorf("unmarshaling request failed with %s", err)
 	}
 
-	var pod *corev1.Pod
 	request := review.Request
-	response := new(v1beta1.AdmissionResponse)
 
-	//unmarshall pod
-	if err := json.Unmarshal(request.Object.Raw, &pod); err != nil {
-		return nil, fmt.Errorf("unable unmarshal pod json object %v", err)
+
+	var responseBytes []byte
+	if request.Kind.Kind == "Deployment" {
+		var err error
+		var deployment appsv1.Deployment
+		if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
+			return nil, fmt.Errorf("could not unmarshal raw object: %v", err)
+		}
+		availableLabels := deployment.Labels
+		addedLabels := updateLabels(availableLabels, map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"})
+		if responseBytes, err = json.Marshal(addedLabels); err != nil {
+			return nil, fmt.Errorf("could not marshall response: %v", err)
+		}
 	}
 
-	// set response options
-	response.Allowed = true
-	response.UID = request.UID
-	//http://jsonpatch.com/
-	jsonPatch := v1beta1.PatchTypeJSONPatch
-	response.PatchType = &jsonPatch
 
-	response.AuditAnnotations = map[string]string{
-		"mutateme": "injected by mutating-webhook",
+
+	response :=&v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   responseBytes,
+		UID: request.UID,
+		PatchType: func() *v1beta1.PatchType {
+			pt := v1beta1.PatchTypeJSONPatch
+			return &pt
+		}(),
 	}
 
-	var err error
-	px := make([]addOperation,0)
-	patch :=  addOperation{
-		Operation: "add",
-		Path:      "/metadata/labels",
-		Value:     map[string]string {"environment":"dev"},
-	}
-	px = append(px,patch )
-	response.Patch, err = json.Marshal(px)
-	if err != nil {
-		return nil, fmt.Errorf("cannot append label %s", err)
-	}
-	fmt.Println(string(response.Patch))
+
 
 	response.Result = &metav1.Status{ Status: "Success"}
 	review.Response = response
@@ -64,6 +100,5 @@ func Mutate(body []byte) ([]byte, error){
 	if err != nil {
 		return nil, fmt.Errorf("cannot create review body %s", err)
 	}
-
 	return reviewBody,nil
 }

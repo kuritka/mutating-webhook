@@ -12,36 +12,36 @@ import (
 )
 
 var logger = log.Log
-const port = 8443
-
+const
+(
+	port = 8443
+	//I don't expect any changes in volumeMounts that's why I'm keeping paths as constants
+	certPath ="/etc/webhook/certs/cert.pem"
+	keyPath= "/etc/webhook/certs/key.pem"
+)
 
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 
-	// read the body / request
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
+	guards.HttpFailOnError(w,err,"can't read request body")
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Err(err).Msg( "can't reading request body")
+
+	// verify the content type is accurate
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		guards.HttpThrowError(w,http.StatusUnsupportedMediaType,"Content-Type=%s, expect application/json", contentType)
 	}
 
 	fmt.Printf("REQUEST BODY :\n%v\n\n", string(body))
 	body, err = mutate.Mutate(body)
-	fmt.Printf("REPOSNSE BODY :\n%v\n\n", string(body))
+	guards.HttpFailOnError(w,err,"can't mutate request body")
 
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Err(err).Msg( "can't mutate request body")
-	}
 
 	// and write it back
 	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write(body); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		logger.Err(err).Msg( "can't send AdmissionReview")
-	}
+	_, err = w.Write(body)
+	guards.HttpFailOnError(w,err,"can't send AdmissionReview")
 }
 
 
@@ -58,8 +58,7 @@ func main() {
 		MaxHeaderBytes: 1 << 20, // 1048576
 	}
 
-	//don't expect changes in volumeMounts,  keeping paths as constants
 	logger.Info().Msgf("Listening on %v:",port)
-	err := s.ListenAndServeTLS("/etc/webhook/certs/cert.pem","/etc/webhook/certs/key.pem" )
+	err := s.ListenAndServeTLS(certPath,keyPath )
 	guards.FailOnError(err,"server stopped")
 }
