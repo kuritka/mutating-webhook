@@ -1,32 +1,41 @@
 package mutate
 
 import (
-	"fmt"
+	"encoding/json"
+	"k8s.io/api/admission/v1beta1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 
-func TestMutate(t *testing.T) {
+func TestLabelsForDeploymentWithoutCustomLabel(t *testing.T) {
 	//arrange
 	//act
-	_, err := Mutate([]byte(inputWithoutCustomLabel))
-
+	result, err := Mutate([]byte(inputWithoutCustomLabel))
+	review := new(v1beta1.AdmissionReview)
+	_ = json.Unmarshal(result, review)
+	patch := review.Response.Patch
 	//assert
 	assert.NoError(t,err)
+	assert.Equal(t,`[{"op":"add","path":"/metadata/labels","value":{"cost-center":"60001","environment":"dev","product":"cash-services"}}]`, string(patch))
+
 }
 
 
-func TestBeep(t *testing.T) {
+func TestLabelsForDeploymentWithCustomLabel(t *testing.T) {
 	//arrange
 	//act
-	resp, err := Mutate([]byte(inputWithCustomLabel))
-
+	result, err := Mutate([]byte(inputWithCustomLabel))
+	review := new(v1beta1.AdmissionReview)
+	_ = json.Unmarshal(result, review)
+	patch := review.Response.Patch
 	//assert
 	assert.NoError(t,err)
-	fmt.Println(string(resp))
+	assert.Equal(t,`[{"op":"remove","path":"/metadata/labels"},{"op":"add","path":"/metadata/labels","value":{"app":"beep","cost-center":"60001","environment":"dev","product":"cash-services"}}]`, string(patch))
 }
+
+
 
 
 const inputWithCustomLabel = `
