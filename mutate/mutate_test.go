@@ -9,10 +9,32 @@ import (
 )
 
 
-func TestLabelsForDeploymentWithoutCustomLabel(t *testing.T) {
+//func TestInvalidPod(t *testing.T){
+//	//arrange
+//	//act
+//	result, err := Mutate([]byte(deploymentWithCustomLabel))
+//	review := new(v1beta1.AdmissionReview)
+//	_ = json.Unmarshal(result, review)
+//	//assert
+//	assert.Error(t,err)
+//	assert.Nil(t, result)
+//}
+
+
+
+func TestCorruptedJson(t *testing.T){
 	//arrange
 	//act
-	result, err := Mutate([]byte(inputWithoutCustomLabel))
+	result, err := Mutate([]byte(corruptedPod))
+	//assert
+	assert.Error(t,err)
+	assert.Nil(t, result)
+}
+
+func TestDeploymentWithoutCustomLabel(t *testing.T) {
+	//arrange
+	//act
+	result, err := Mutate([]byte(deploymentWithoutCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -23,10 +45,22 @@ func TestLabelsForDeploymentWithoutCustomLabel(t *testing.T) {
 }
 
 
-func TestLabelsForDeploymentWithCustomLabel(t *testing.T) {
+func TestDeploymentWithExistingLabel(t *testing.T) {
 	//arrange
 	//act
-	result, err := Mutate([]byte(inputWithCustomLabel))
+	result, err := Mutate([]byte(deploymentWithCustomLabel))
+	review := new(v1beta1.AdmissionReview)
+	_ = json.Unmarshal(result, review)
+	patch := review.Response.Patch
+	//assert
+	assert.NoError(t,err)
+	assert.Equal(t,`[{"op":"remove","path":"/metadata/labels"},{"op":"add","path":"/metadata/labels","value":{"app":"beep","cost-center":"60001","environment":"dev","product":"cash-services"}}]`, string(patch))
+}
+
+func TestPodWithoutLabels(t *testing.T) {
+	//arrange
+	//act
+	result, err := Mutate([]byte(deploymentWithCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -38,7 +72,8 @@ func TestLabelsForDeploymentWithCustomLabel(t *testing.T) {
 
 
 
-const inputWithCustomLabel = `
+
+const deploymentWithCustomLabel = `
 { 
    "kind":"AdmissionReview",
    "apiVersion":"admission.k8s.io/v1beta1",
@@ -137,7 +172,7 @@ const inputWithCustomLabel = `
 }
 `
 
-const inputWithoutCustomLabel = `
+const deploymentWithoutCustomLabel = `
 { 
    "kind":"AdmissionReview",
    "apiVersion":"admission.k8s.io/v1beta1",
@@ -232,4 +267,213 @@ const inputWithoutCustomLabel = `
    }
 }
 `
+
+
+
+const podWithoutLabels = `
+{ 
+   "kind":"AdmissionReview",
+   "apiVersion":"admission.k8s.io/v1beta1",
+   "request":{ 
+      "uid":"d27ba71d-402f-11ea-9a8c-66e02a952a06",
+      "kind":{ 
+         "group":"",
+         "version":"v1",
+         "kind":"Pod"
+      },
+      "resource":{ 
+         "group":"",
+         "version":"v1",
+         "resource":"pods"
+      },
+      "namespace":"mutant-test",
+      "operation":"CREATE",
+      "userInfo":{ 
+         "username":"masterclient",
+         "groups":[ 
+            "system:masters",
+            "system:authenticated"
+         ]
+      },
+      "object":{ 
+         "kind":"Pod",
+         "apiVersion":"v1",
+         "metadata":{ 
+            "name":"no-labels",
+            "namespace":"mutant-test",
+            "creationTimestamp":null,
+            "annotations":{ 
+               "kubectl.kubernetes.io/last-applied-configuration":"{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"name\":\"no-labels\",\"namespace\":\"mutant-test\"},\"spec\":{\"containers\":[{\"command\":[\"/bin/sleep\",\"infinity\"],\"image\":\"tutum/curl\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"beep\"}]}}\n"
+            }
+         },
+         "spec":{ 
+            "volumes":[ 
+               { 
+                  "name":"default-token-88dzx",
+                  "secret":{ 
+                     "secretName":"default-token-88dzx"
+                  }
+               }
+            ],
+            "containers":[ 
+               { 
+                  "name":"beep",
+                  "image":"tutum/curl",
+                  "command":[ 
+                     "/bin/sleep",
+                     "infinity"
+                  ],
+                  "resources":{ 
+
+                  },
+                  "volumeMounts":[ 
+                     { 
+                        "name":"default-token-88dzx",
+                        "readOnly":true,
+                        "mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"
+                     }
+                  ],
+                  "terminationMessagePath":"/dev/termination-log",
+                  "terminationMessagePolicy":"File",
+                  "imagePullPolicy":"IfNotPresent"
+               }
+            ],
+            "restartPolicy":"Always",
+            "terminationGracePeriodSeconds":30,
+            "dnsPolicy":"ClusterFirst",
+            "serviceAccountName":"default",
+            "serviceAccount":"default",
+            "securityContext":{ 
+
+            },
+            "schedulerName":"default-scheduler",
+            "tolerations":[ 
+               { 
+                  "key":"node.kubernetes.io/not-ready",
+                  "operator":"Exists",
+                  "effect":"NoExecute",
+                  "tolerationSeconds":300
+               },
+               { 
+                  "key":"node.kubernetes.io/unreachable",
+                  "operator":"Exists",
+                  "effect":"NoExecute",
+                  "tolerationSeconds":300
+               }
+            ],
+            "priority":0,
+            "enableServiceLinks":true
+         },
+         "status":{ 
+
+         }
+      },
+      "oldObject":null,
+      "dryRun":false
+   }
+}`
+
+
+const corruptedPod= `
+{ 
+   "kind:"AdmissionReview",
+   "apiVersion":"admission.k8s.io/v1beta1",
+   "request":{ 
+      "uid":"d27ba71d-402f-11ea-9a8c-66e02a952a06",
+      "kind":{ 
+         "group":"",
+         "version":"v1",
+         "kind":"Pod"
+      },
+      "resource":{ 
+         "group":"",
+         "version":"v1",
+         "resource":"pods"
+      },
+      "namespace":"mutant-test",
+      "operation":"CREATE",
+      "userInfo":{ 
+         "username":"masterclient",
+         "groups":[ 
+            "system:masters",
+            "system:authenticated"
+         ]
+      },
+      "object":{ 
+         "kind":"Pod",
+         "apiVersion":"v1",
+         "metadata":{ 
+            "name":"no-labels",
+            "namespace":"mutant-test",
+            "creationTimestamp":null,
+            "annotations":{ 
+               "kubectl.kubernetes.io/last-applied-configuration":"{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"name\":\"no-labels\",\"namespace\":\"mutant-test\"},\"spec\":{\"containers\":[{\"command\":[\"/bin/sleep\",\"infinity\"],\"image\":\"tutum/curl\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"beep\"}]}}\n"
+            }
+         },
+         "spec":{ 
+            "volumes":[ 
+               { 
+                  "name":"default-token-88dzx",
+                  "secret":{ 
+                     "secretName":"default-token-88dzx"
+                  }
+               }
+            ],
+            "containers":[ 
+               { 
+                  "name":"beep",
+                  "image":"tutum/curl",
+                  "command":[ 
+                     "/bin/sleep",
+                     "infinity"
+                  ],
+                  "resources":{ 
+
+                  },
+                  "volumeMounts":[ 
+                     { 
+                        "name":"default-token-88dzx",
+                        "readOnly":true,
+                        "mountPath":"/var/run/secrets/kubernetes.io/serviceaccount"
+                     }
+                  ],
+                  "terminationMessagePath":"/dev/termination-log",
+                  "terminationMessagePolicy":"File",
+                  "imagePullPolicy":"IfNotPresent"
+               }
+            ],
+            "restartPolicy":"Always",
+            "terminationGracePeriodSeconds":30,
+            "dnsPolicy":"ClusterFirst",
+            "serviceAccountName":"default",
+            "serviceAccount":"default",
+            "securityContext":{ 
+
+            },
+            "schedulerName":"default-scheduler",
+            "tolerations":[ 
+               { 
+                  "key":"node.kubernetes.io/not-ready",
+                  "operator":"Exists",
+                  "effect":"NoExecute",
+                  "tolerationSeconds":300
+               },
+               { 
+                  "key":"node.kubernetes.io/unreachable",
+                  "operator":"Exists",
+                  "effect":"NoExecute",
+                  "tolerationSeconds":300
+               }
+            ],
+            "priority":0,
+            "enableServiceLinks":true
+         },
+         "status":{ 
+
+         }
+      },
+      "oldObject":null,
+      "dryRun":false
+   }
+}`
 

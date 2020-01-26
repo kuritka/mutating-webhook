@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"k8s.io/api/admission/v1beta1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -13,6 +14,51 @@ type patchOperation struct {
 	Operation string      `json:"op"`
 	Path      string      `json:"path"`
 	Value     interface{} `json:"value,omitempty"`
+}
+
+
+func Mutate(body []byte) ([]byte, error){
+
+	var err error
+	var responseBody []byte
+	result := &metav1.Status{ Status: "Success"}
+
+	review := new(v1beta1.AdmissionReview)
+	if err := json.Unmarshal(body, review); err != nil {
+		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
+	}
+
+
+	var deployment appsv1.Deployment
+	err = json.Unmarshal(review.Request.Object.Raw, &deployment)
+	setResponseOnFail(result,err, "could not unmarshal raw deployment %v",err)
+
+	labels := updateLabels(deployment.Labels, map[string]string {"environment": "dev", "product":"cash-services", "cost-center":"60001"})
+	responseBody, err = json.Marshal(labels)
+	setResponseOnFail(result,err, "could not marshal %v;  %v",labels,err)
+
+	review.Response =&v1beta1.AdmissionResponse{
+		Allowed: true,
+		Patch:   responseBody,
+		UID:     review.Request.UID,
+		PatchType: func() *v1beta1.PatchType {
+			pt := v1beta1.PatchTypeJSONPatch
+			return &pt
+		}(),
+		Result: result,
+	}
+	reviewBody, err := json.Marshal(review)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create review body %s", err)
+	}
+	return reviewBody,nil
+}
+
+
+func setResponseOnFail(response *metav1.Status, err error, message string, v ...interface{}){
+	if err != nil {
+		response = &metav1.Status{Status: "Failure", Message: fmt.Sprintf("%s %v", message, v), Reason: "Invalid"}
+	}
 }
 
 
@@ -42,48 +88,4 @@ func updateLabels(existingLabels map[string]string, added map[string]string) (pa
 		Value:     labels,
 	})
 	return patch
-}
-
-
-func Mutate(body []byte) ([]byte, error){
-
-	review := new(v1beta1.AdmissionReview)
-	if err := json.Unmarshal(body, review); err != nil {
-		return body,  fmt.Errorf("unmarshaling request failed with %s", err)
-	}
-
-	request := review.Request
-
-
-	var responseBytes []byte
-	var err error
-	var deployment appsv1.Deployment
-	if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
-		return nil, fmt.Errorf("could not unmarshal raw object: %v", err)
-	}
-	availableLabels := deployment.Labels
-	addedLabels := updateLabels(availableLabels, map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"})
-	if responseBytes, err = json.Marshal(addedLabels); err != nil {
-		return nil, fmt.Errorf("could not marshall response: %v", err)
-	}
-
-	response :=&v1beta1.AdmissionResponse{
-		Allowed: true,
-		Patch:   responseBytes,
-		UID: request.UID,
-		PatchType: func() *v1beta1.PatchType {
-			pt := v1beta1.PatchTypeJSONPatch
-			return &pt
-		}(),
-	}
-
-
-
-	response.Result = &metav1.Status{ Status: "Success"}
-	review.Response = response
-	reviewBody, err := json.Marshal(review)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create review body %s", err)
-	}
-	return reviewBody,nil
 }

@@ -26,5 +26,3 @@ func FailOnError( err error, message string, v ...interface{}){
 		logger.Panic().Err(err).Msgf(message, v)
 	}
 }
-
-
