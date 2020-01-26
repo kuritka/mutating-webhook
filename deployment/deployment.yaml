@@ -62,7 +62,7 @@ webhooks:
       - operations: [ "CREATE" ]
         apiGroups: ["apps", ""]
         apiVersions: ["v1"]
-        resources: ["deployments","services","pods"]
+        resources: ["deployments","pods"]
     namespaceSelector:
       matchLabels:
         mutateme: enabled

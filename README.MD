@@ -268,16 +268,16 @@ Following json is prettify input for for `sleep` deployment
  - [ ] what if deployment fails ? (crash-loop)
  - [ ] circular dependency ? 
  - [ ] 10k pods depending on our webhook ? 
- - [ ] multiple containers in pod ?  - np, it is about pods, not about containers.. 
+ - [X] multiple containers in pod ?  - np, it is about pods, not about containers. there is already injected istio 
  - [X] what about deployments ? 
  - [X] look at this: imagePullPolicy: Always
  - [ ] check with multiple types of Kinds (Deploy, POD, Service)
  - [ ] mutate as strategy, refactor 
- - [ ] co novy namespace ?
- - [ ] What if label already exists? or no labels?
+ - [ ] put app into new namespace ?
+ - [x] What if label already exists? or no labels?
  - [ ] Configuration of labels would be part of Deployment
  - [x] build should inject caBundle, build version and annotation 
- - [ ] return Result: &metav1.Status{ Message: err.Error(), },
+ - [ ] return Result: &metav1.Status{ Message: err.Error(), }, refactor
 
  
  

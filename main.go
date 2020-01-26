@@ -33,7 +33,7 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 		guards.HttpThrowError(w,http.StatusUnsupportedMediaType,"Content-Type=%s, expect application/json", contentType)
 	}
 
-	fmt.Printf("REQUEST BODY :\n%v\n\n", string(body))
+	//fmt.Printf("REQUEST BODY :\n%v\n\n", string(body))
 	body, err = mutate.Mutate(body)
 	guards.HttpFailOnError(w,err,"can't mutate request body")
 

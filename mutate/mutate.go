@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1beta1 "k8s.io/api/admission/v1beta1"
+	"k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,19 +15,6 @@ type patchOperation struct {
 	Value     interface{} `json:"value,omitempty"`
 }
 
-
-//func getLabels(existingLabels map[string]string, added map[string]string) (labelsToAdd map[string]string, labelsToReplace map[string]string) {
-//	add := make(map[string]string)
-//	replace := make(map[string]string)
-//	for key, value := range added {
-//		if existingLabels == nil || existingLabels[key] == "" {
-//			add[key] = value
-//			continue
-//		}
-//		replace[key] = value
-//	}
-//	return add,replace
-//}
 
 func getLabels(existingLabels map[string]string, added map[string]string) (labels map[string]string) {
 	newMap := make(map[string]string, len(existingLabels) + len(added))
@@ -43,10 +30,12 @@ func getLabels(existingLabels map[string]string, added map[string]string) (label
 
 func updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
 	labels := getLabels(existingLabels,added)
-	patch = append(patch, patchOperation{
-		Operation: "remove",
-		Path:      "/metadata/labels",
-	})
+	if existingLabels != nil {
+		patch = append(patch, patchOperation{
+			Operation: "remove",
+			Path:      "/metadata/labels",
+		})
+	}
 	patch = append(patch, patchOperation{
 		Operation: "add",
 		Path:      "/metadata/labels",
@@ -67,20 +56,16 @@ func Mutate(body []byte) ([]byte, error){
 
 
 	var responseBytes []byte
-	if request.Kind.Kind == "Deployment" {
-		var err error
-		var deployment appsv1.Deployment
-		if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
-			return nil, fmt.Errorf("could not unmarshal raw object: %v", err)
-		}
-		availableLabels := deployment.Labels
-		addedLabels := updateLabels(availableLabels, map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"})
-		if responseBytes, err = json.Marshal(addedLabels); err != nil {
-			return nil, fmt.Errorf("could not marshall response: %v", err)
-		}
+	var err error
+	var deployment appsv1.Deployment
+	if err := json.Unmarshal(request.Object.Raw, &deployment); err != nil {
+		return nil, fmt.Errorf("could not unmarshal raw object: %v", err)
 	}
-
-
+	availableLabels := deployment.Labels
+	addedLabels := updateLabels(availableLabels, map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"})
+	if responseBytes, err = json.Marshal(addedLabels); err != nil {
+		return nil, fmt.Errorf("could not marshall response: %v", err)
+	}
 
 	response :=&v1beta1.AdmissionResponse{
 		Allowed: true,
