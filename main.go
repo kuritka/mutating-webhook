@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mutating-webhook/common/flags"
 	"mutating-webhook/mutate"
 	"net/http"
 	"time"
@@ -18,33 +21,52 @@ const
 	//I don't expect any changes in volumeMounts that's why I'm keeping paths as constants
 	certPath ="/etc/webhook/certs/cert.pem"
 	keyPath= "/etc/webhook/certs/key.pem"
+	envLabels="LABEL_MAP"
 )
 
-func handleMutate(w http.ResponseWriter, r *http.Request) {
+var labels map[string]string
 
+func handleMutate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		guards.HttpThrowServerError(w,err, "can't read request body")
+		return
+	}
 	defer r.Body.Close()
-	guards.HttpFailOnError(w,err,"can't read request body")
 
 
 	// verify the content type is accurate
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		guards.HttpThrowError(w,http.StatusUnsupportedMediaType,"Content-Type=%s, expect application/json", contentType)
+	if contentType := r.Header.Get("Content-Type"); contentType != "application/json" {
+		guards.HttpThrowError(w,http.StatusInternalServerError,"Content-Type=%s, expect application/json", contentType)
+		return
 	}
 
-	body, err = mutate.Mutate(body)
-	guards.HttpFailOnError(w,err,"can't mutate request body")
+	body, err = mutate.Mutate(body, labels)
+	if err != nil {
+		guards.HttpThrowServerError(w,err,"can't mutate request")
+		return
+	}
 
 
 	// and write it back
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(body)
-	guards.HttpFailOnError(w,err,"can't send AdmissionReview")
+	if _, err = w.Write(body); err != nil {
+		guards.HttpThrowServerError(w, err, "can't send AdmissionReview")
+	}
 }
 
 
+func readLabels() map[string]string {
+	labels := make(map[string]string)
+	labelBase64 := flags.MustGetStringFlagFromEnv(envLabels)
+	labelsJson, err := base64.StdEncoding.DecodeString(labelBase64)
+	guards.FailOnError(err,"invalid labels %v", labelBase64)
+	err = json.Unmarshal(labelsJson, &labels)
+	guards.FailOnError(err,"invalid labels %v", string(labelsJson))
+	return labels
+}
+
 func main() {
+	labels = readLabels()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", handleMutate)

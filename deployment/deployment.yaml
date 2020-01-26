@@ -1,3 +1,11 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mutating-webhook-configmap
+data:
+  config.labels: "eyJjb3N0LWNlbnRlciI6IjYwMDAxIiwiZW52aXJvbm1lbnQiOiJkZXYiLCJwcm9kdWN0IjoiY2FzaC1zZXJ2aWNlcyIsImNyZWF0b3IiOiJnYTJrdWFsIn0K"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,6 +33,12 @@ spec:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
               readOnly: true
+          env:
+            -  name: LABEL_MAP
+               valueFrom:
+                 configMapKeyRef:
+                   name: mutating-webhook-configmap
+                   key: config.labels
       volumes:
         - name: webhook-certs
           secret:

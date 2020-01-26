@@ -17,11 +17,11 @@ type patchOperation struct {
 }
 
 
-func Mutate(body []byte) ([]byte, error){
+func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 
 	var err error
 	var responseBody []byte
-	result := &metav1.Status{ Status: "Success"}
+	status := &metav1.Status{ Status: "Success"}
 
 	review := new(v1beta1.AdmissionReview)
 	if err := json.Unmarshal(body, review); err != nil {
@@ -31,11 +31,11 @@ func Mutate(body []byte) ([]byte, error){
 
 	var deployment appsv1.Deployment
 	err = json.Unmarshal(review.Request.Object.Raw, &deployment)
-	setResponseOnFail(result,err, "could not unmarshal raw deployment %v",err)
+	setStatusOnFail(status,err, "could not unmarshal raw deployment %v",err)
 
-	labels := updateLabels(deployment.Labels, map[string]string {"environment": "dev", "product":"cash-services", "cost-center":"60001"})
+	labels := updateLabels(deployment.Labels, customLabels )
 	responseBody, err = json.Marshal(labels)
-	setResponseOnFail(result,err, "could not marshal %v;  %v",labels,err)
+	setStatusOnFail(status,err, "could not marshal %v;  %v",labels,err)
 
 	review.Response =&v1beta1.AdmissionResponse{
 		Allowed: true,
@@ -45,7 +45,7 @@ func Mutate(body []byte) ([]byte, error){
 			pt := v1beta1.PatchTypeJSONPatch
 			return &pt
 		}(),
-		Result: result,
+		Result: status,
 	}
 	reviewBody, err := json.Marshal(review)
 	if err != nil {
@@ -55,7 +55,7 @@ func Mutate(body []byte) ([]byte, error){
 }
 
 
-func setResponseOnFail(response *metav1.Status, err error, message string, v ...interface{}){
+func setStatusOnFail(response *metav1.Status, err error, message string, v ...interface{}){
 	if err != nil {
 		response = &metav1.Status{Status: "Failure", Message: fmt.Sprintf("%s %v", message, v), Reason: "Invalid"}
 	}
