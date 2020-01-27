@@ -1,8 +1,8 @@
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mutating-webhook-configmap
+  namespace: webhook-system
 data:
   config.labels: "eyJjb3N0LWNlbnRlciI6IjYwMDAxIiwiZW52aXJvbm1lbnQiOiJkZXYiLCJwcm9kdWN0IjoiY2FzaC1zZXJ2aWNlcyIsImNyZWF0b3IiOiJnYTJrdWFsIiwgIm93bmVyIjoiZ2Eya3VhbCJ9Cg=="
 #  config.labels: "e30K" #empty label
@@ -11,6 +11,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mutating-webhook-deployment
+  namespace: webhook-system
   labels:
     app: mutating-webhook
   annotations:
@@ -51,6 +52,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mutating-webhook-svc
+  namespace: webhook-system
   labels:
     app: mutating-webhook
 spec:
@@ -65,6 +67,7 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   name: mutating-webhook-cfg
+  namespace: webhook-system
   labels:
     app: mutating-webhook
 webhooks:
@@ -72,7 +75,7 @@ webhooks:
     clientConfig:
       service:
         name: mutating-webhook-svc
-        namespace: default
+        namespace: webhook-system
         path: "/mutate"
       caBundle: ${caBundle}
     rules:

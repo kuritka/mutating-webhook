@@ -48,12 +48,19 @@ done
 
 [ -z ${service} ] && service=mutating-webhook-svc
 [ -z ${secret} ] && secret=mutating-webhook-certs
-[ -z ${namespace} ] && namespace=default
+[ -z ${namespace} ] && namespace=webhook-system
 
 if [ ! -x "$(command -v openssl)" ]; then
     echo "openssl not found"
     exit 1
 fi
+
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+EOF
 
 csrName=${service}.${namespace}
 tmpdir=$(mktemp -d)

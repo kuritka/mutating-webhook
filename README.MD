@@ -38,25 +38,37 @@ kubectl create secret docker-registry <name> --docker-server=DOCKER_REGISTRY_SER
 All secrets are within [azure registry](https://portal.azure.com/#@deutscheboerse.onmicrosoft.com/resource/subscriptions/28ed73f5-4bb4-4064-bf48-b520cc638475/resourceGroups/rg-onho-sbx/providers/Microsoft.ContainerRegistry/registries/acronhosbx/accessKey)
 
 ### build and deploy 
-
-run this:
+Initialize application by running following command: 
 ```bash
-./build.sh cicd v1.18
+./webhook-init.sh
 ```
+Init script creates namespace `webhook-system` and secret containing key+cert pair. Certificate is signed by cluster authority.  
 
 
+To redeploy run this:
+```bash
+./build.sh cicd v1.20
+```
+Script redeploy webhook(s). It is absolutely necessary to deploy by this script as placeholders are filled dynamically.   
+
+
+For testing run this:
+```bash
+kubectl apply -f ./deployment/_test.yaml
+```
+Command creates several pods in `mutant-test` namespace.
 
 ### todo:
- - [ ] check what happens when webhook request fails (restart policy always? )
- - [ ] what if deployment fails ? (crash-loop)
- - [ ] circular dependency ? 
- - [ ] 10k pods depending on our webhook ? 
+ - [x] check what happens when webhook request fails - error is logged, no changes in pod, validator needs to take care of integrity until mute-webhook is fixed
+ - [x] what if deployment fails ? (crash-loop) - restart policy always. If pods are created during initialization, than  pods without injections will occur. Validator should check label integrity
+ - [x] circular dependency ? - no 
+ - [x] 10k pods depending on our webhook ? - deployment + Replicasets
  - [X] multiple containers in pod ?  - np, it is about pods, not about containers. there is already injected istio 
  - [X] what about deployments ? 
  - [X] look at this: imagePullPolicy: Always
  - [X] check with multiple types of Kinds (Deploy, POD, Service); resources are given by MutatingWebhookConfiguration
  - [ ] object model, refactor 
- - [ ] put app into new namespace (check with webhook-create-signed-cert.sh )
+ - [x] put server into dedicated namespace (check with webhook-create-signed-cert.sh )
  - [x] What if label already exists? or no labels?
  - [x] Configuration of labels would be part of Deployment, check json as envvar 
  - [x] build should inject caBundle, build version and annotation 
@@ -65,7 +77,8 @@ run this:
  
  
  ### terminal commands
+ 
  ```bash
-watch kubectl logs `kubectl get pod -l app=mutating-webhook -o jsonpath="{.items[0].metadata.name}"` -c mutating-webhook 
+watch kubectl logs `kubectl get pod -l app=mutating-webhook -n webhook-system -o jsonpath="{.items[0].metadata.name}"` -c mutating-webhook -n webhook-system  
 ```
  
