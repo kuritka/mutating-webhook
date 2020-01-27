@@ -76,7 +76,7 @@ webhooks:
       service:
         name: mutating-webhook-svc
         namespace: webhook-system
-        path: "/mutate"
+        path: "/mutate-labels"
       caBundle: ${caBundle}
     rules:
       - operations: [ "CREATE" ]
@@ -86,3 +86,56 @@ webhooks:
     namespaceSelector:
       matchLabels:
         mutateme: enabled
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mutating-webhook-sa
+  namespace: webhook-system
+  labels:
+    app: mutating-webhook
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mutating-webhook-cr
+  namespace: webhook-system
+  labels:
+    app: mutating-webhook
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - events
+    verbs:
+      - "*"
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+    verbs:
+      - "*"
+  - apiGroups:
+      - autoscaling
+    resources:
+      - '*'
+    verbs:
+      - '*'
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: mutating-webhook-crb
+  namespace: webhook-system
+  labels:
+    app: mutating-webhook
+subjects:
+  - kind: ServiceAccount
+    name: mutating-webhook-sa
+    namespace: webhook-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mutating-webhook-cr

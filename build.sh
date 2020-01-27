@@ -39,6 +39,16 @@ check_kube_cli(){
 }
 
 
+check_namespace_exists(){
+  ns=$(kubectl get namespace webhook-system -o=jsonpath='{.metadata.name}')
+  if [ "$ns" != "webhook-system" ]
+then
+   panic "missing namespace webhook-system "
+	 exit 1
+fi
+
+}
+
 ci(){
 cat <<EOF
 ***************************************************************
@@ -61,6 +71,7 @@ cat <<EOF
 ***************************************************************
 EOF
     check_kube_cli
+    check_namespace_exists
 
     caBundle="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')"
     yaml="$(cat ./deployment/deployment.yaml )"
@@ -69,7 +80,7 @@ EOF
     bind="$(echo "$yaml" | sed -e "s|\${tag}|${tag}|g" | sed -e "s|\${caBundle}|${caBundle}|g" | sed -e "s|\${buildVersion}|${buildVersion}|g")"
 
     # in order to download the newest docker from repo, forcing pod to restart and  do not take care if something is deployed or not
-    kubectl scale deployment mutating-webhook-deployment --replicas=0 2>/dev/null || true
+    kubectl scale deployment mutating-webhook-deployment -n webhook-system `` --replicas=0 2>/dev/null || true
 
 cat <<EOF | kubectl apply -f -
 `echo "$bind"`

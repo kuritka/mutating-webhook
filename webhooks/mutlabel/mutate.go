@@ -1,4 +1,4 @@
-package mutate
+package mutlabel
 
 import (
 	"encoding/json"

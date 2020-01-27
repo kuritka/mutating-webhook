@@ -49,8 +49,7 @@ To redeploy run this:
 ```bash
 ./build.sh cicd v1.20
 ```
-Script redeploy webhook(s). It is absolutely necessary to deploy by this script as placeholders are filled dynamically.   
-
+Script redeploy webhook(s). It is absolutely necessary to deploy by `./build.sh` as placeholders are filled dynamically.   
 
 For testing run this:
 ```bash
@@ -73,6 +72,7 @@ Command creates several pods in `mutant-test` namespace.
  - [x] Configuration of labels would be part of Deployment, check json as envvar 
  - [x] build should inject caBundle, build version and annotation 
  - [x] return Result: &metav1.Status{ Message: err.Error(), }, refactor
+ - [ ] setup role binding
 
  
  

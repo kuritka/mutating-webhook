@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"mutating-webhook/common/flags"
-	"mutating-webhook/mutate"
+	"mutating-webhook/webhooks/mutlabel"
 	"net/http"
 	"time"
 
@@ -41,7 +41,7 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err = mutate.Mutate(body, labels)
+	body, err = mutlabel.Mutate(body, labels)
 	if err != nil {
 		guards.HttpThrowServerError(w,err,"can't mutate request")
 		return
@@ -68,7 +68,7 @@ func main() {
 	labels = readLabelConfig()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/mutate", handleMutate)
+	mux.HandleFunc("/mutate-labels", handleMutate)
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%v", port),
