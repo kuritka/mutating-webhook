@@ -24,7 +24,11 @@ const
 	envLabels="LABEL_MAP"
 )
 
-var labels map[string]string
+type IMutate interface {
+	Mutate(body []byte) ([]byte, error)
+}
+
+var genericPodMutate IMutate
 
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -41,7 +45,7 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err = mutlabel.Mutate(body, labels)
+	body, err = genericPodMutate.Mutate(body)
 	if err != nil {
 		guards.HttpThrowServerError(w,err,"can't mutate request")
 		return
@@ -65,7 +69,8 @@ func readLabelConfig() map[string]string {
 }
 
 func main() {
-	labels = readLabelConfig()
+	config := readLabelConfig()
+	genericPodMutate = mutlabel.NewMutLabel(config)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate-labels", handleMutate)
@@ -79,7 +84,7 @@ func main() {
 	}
 
 	logger.Info().Msgf("Listening on %v:",port)
-	logger.Info().Msgf("%v", labels)
+	logger.Info().Msgf("%v", config)
 	err := s.ListenAndServeTLS(certPath,keyPath )
 	guards.FailOnError(err,"server stopped")
 }

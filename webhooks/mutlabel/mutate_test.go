@@ -13,11 +13,14 @@ import (
 func TestEmptyLabelsOnPodWithoutLabels(t *testing.T){
 	//arrange
 	labels := map[string]string {}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(podWithoutLabels), labels)
+	result, err := ml.Mutate([]byte(podWithoutLabels))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
+
 	//assert
 	assert.NoError(t,err)
 	assert.Equal(t,`[{"op":"add","path":"/metadata/labels","value":{}}]`, string(patch))
@@ -30,11 +33,14 @@ func TestEmptyLabelsOnPodWithoutLabels(t *testing.T){
 func TestPodWithCustomLabels(t *testing.T){
 	//arrange
 	labels :=  map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(podWithCustomLabel), labels)
+	result, err := ml.Mutate([]byte(podWithCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
+
 	//assert
 	assert.NoError(t,err)
 	assert.Equal(t,`[{"op":"remove","path":"/metadata/labels"},{"op":"add","path":"/metadata/labels","value":{"app":"beep","cost-center":"60001","environment":"dev","pod-template-hash":"7964bf4878","product":"cash-services"}}]`, string(patch))
@@ -46,11 +52,14 @@ func TestPodWithCustomLabels(t *testing.T){
 func TestPodWithoutCustomLabel(t *testing.T) {
 	//arrange
 	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(podWithoutCustomLabel), labels)
+	result, err := ml.Mutate([]byte(podWithoutCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
+
 	//assert
 	assert.NoError(t,err)
 	assert.Equal(t,`[{"op":"remove","path":"/metadata/labels"},{"op":"add","path":"/metadata/labels","value":{"app":"sleep","cost-center":"60001","environment":"dev","pod-template-hash":"7674d45776","product":"cash-services"}}]`, string(patch))
@@ -64,8 +73,11 @@ func TestPodWithoutCustomLabel(t *testing.T) {
 func TestCorruptedJson(t *testing.T){
 	//arrange
 	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(corruptedPod), labels)
+	result, err := ml.Mutate([]byte(corruptedPod))
+
 	//assert
 	assert.Error(t,err)
 	assert.Nil(t, result)
@@ -76,8 +88,10 @@ func TestCorruptedJson(t *testing.T){
 func TestEmptyLabelsOnDeploymentWithCustomLabels(t *testing.T){
 	//arrange
 	labels := map[string]string {}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(deploymentWithCustomLabel), labels)
+	result, err := ml.Mutate([]byte(deploymentWithCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -93,9 +107,10 @@ func TestEmptyLabelsOnDeploymentWithCustomLabels(t *testing.T){
 func TestDeploymentWithoutCustomLabel(t *testing.T) {
 	//arrange
 	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
+	ml := NewMutLabel(labels)
 
 	//act
-	result, err := Mutate([]byte(deploymentWithoutCustomLabel), labels)
+	result, err := ml.Mutate([]byte(deploymentWithoutCustomLabel))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -112,11 +127,14 @@ func TestDeploymentWithoutCustomLabel(t *testing.T) {
 func TestPodWithoutLabels(t *testing.T) {
 	//arrange
 	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
+	ml := NewMutLabel(labels)
+
 	//act
-	result, err := Mutate([]byte(podWithoutLabels), labels)
+	result, err := ml.Mutate([]byte(podWithoutLabels))
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
+
 	//assert
 	assert.NoError(t,err)
 	assert.Equal(t,`[{"op":"add","path":"/metadata/labels","value":{"cost-center":"60001","environment":"dev","product":"cash-services"}}]`, string(patch))

@@ -3,6 +3,7 @@ package mutlabel
 import (
 	"encoding/json"
 	"fmt"
+	"mutating-webhook/common/extensions"
 	"net/http"
 
 	"k8s.io/api/admission/v1beta1"
@@ -12,15 +13,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+
+var logger = log.Log
+
 type patchOperation struct {
 	Operation string      `json:"op"`
 	Path      string      `json:"path"`
 	Value     interface{} `json:"value,omitempty"`
 }
 
-var logger = log.Log
+type MutLabel struct {
+	labels map[string]string
+}
 
-func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
+
+func NewMutLabel(labels map[string]string) *MutLabel{
+	ml := new(MutLabel)
+	ml.labels = labels
+	return ml
+}
+
+
+func (ml *MutLabel) Mutate(body []byte) ([]byte, error){
 	review := new(v1beta1.AdmissionReview)
 	if err := json.Unmarshal(body, review); err != nil {
 		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
@@ -38,7 +52,7 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 			return nil,  fmt.Errorf("unmarshaling pod from request failed with %s", err)
 		}
 
-		labels := updateLabels(pod.Labels, customLabels )
+		labels := ml.updateLabels(pod.Labels, ml.labels)
 		responseBody, err = json.Marshal(labels)
 		if err != nil {
 			return nil, fmt.Errorf("could not marshal %v;  %v",labels,err)
@@ -46,7 +60,7 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 
 		status = &metav1.Status{ Status: "Success", Code: http.StatusOK}
 
-		logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, podName(&pod))
+		logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, ml.getPodName(&pod))
 	}
 
 	review.Response =&v1beta1.AdmissionResponse{
@@ -67,33 +81,25 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 }
 
 
-func podName(pod *corev1.Pod) string{
+func (ml *MutLabel) getPodName(pod *corev1.Pod) string{
 	if pod.Name != "" {
 		return pod.Name
 	}
 	return pod.ObjectMeta.GenerateName
 }
 
-func getLabels(existingLabels map[string]string, added map[string]string) (labels map[string]string) {
-	newMap := make(map[string]string, len(existingLabels) + len(added))
-	for key, value := range existingLabels {
-		newMap[key] = value
-	}
-	for key, value := range added {
-		newMap[key] = value
-	}
-	return newMap
-}
 
 //remove all labels and append existing + new
-func updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
-	labels := getLabels(existingLabels,added)
+func (ml *MutLabel) updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
+	labels := extensions.Union(existingLabels,added)
+	//remove all
 	if existingLabels != nil {
 		patch = append(patch, patchOperation{
 			Operation: "remove",
 			Path:      "/metadata/labels",
 		})
 	}
+	//add union
 	patch = append(patch, patchOperation{
 		Operation: "add",
 		Path:      "/metadata/labels",

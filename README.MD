@@ -42,7 +42,7 @@ Initialize application by running following command:
 ```bash
 ./webhook-init.sh
 ```
-Init script creates namespace `webhook-system` and secret containing key+cert pair. Certificate is signed by cluster authority.  
+`webhook-init.sh` creates namespace `webhook-system` and secret containing key+cert pair. Certificate is signed by cluster authority.  
 
 
 To redeploy run this:
@@ -57,7 +57,15 @@ kubectl apply -f ./deployment/_test.yaml
 ```
 Command creates several pods in `mutant-test` namespace.
 
-### todo:
+ ### terminal commands
+ 
+ ```bash
+watch kubectl logs `kubectl get pod -l app=mutating-webhook -n webhook-system -o jsonpath="{.items[0].metadata.name}"` -c mutating-webhook -n webhook-system  
+```
+ 
+ ---
+
+### todo
  - [x] check what happens when webhook request fails - error is logged, no changes in pod, validator needs to take care of integrity until mute-webhook is fixed
  - [x] what if deployment fails ? (crash-loop) - restart policy always. If pods are created during initialization, than  pods without injections will occur. Validator should check label integrity
  - [x] circular dependency ? - no 
@@ -66,19 +74,13 @@ Command creates several pods in `mutant-test` namespace.
  - [X] what about deployments ? 
  - [X] look at this: imagePullPolicy: Always
  - [X] check with multiple types of Kinds (Deploy, POD, Service); resources are given by MutatingWebhookConfiguration
- - [ ] object model, refactor 
- - [x] put server into dedicated namespace (check with webhook-create-signed-cert.sh )
+ - [x] encapsulate mutlabel 
+ - [x] put resources into dedicated namespace (check with webhook-create-signed-cert.sh )
  - [x] What if label already exists? or no labels?
  - [x] Configuration of labels would be part of Deployment, check json as envvar 
  - [x] build should inject caBundle, build version and annotation 
  - [x] return Result: &metav1.Status{ Message: err.Error(), }, refactor
- - [ ] setup role binding
+ - [x] setup sa + rbac
 
  
- 
- ### terminal commands
- 
- ```bash
-watch kubectl logs `kubectl get pod -l app=mutating-webhook -n webhook-system -o jsonpath="{.items[0].metadata.name}"` -c mutating-webhook -n webhook-system  
-```
  
