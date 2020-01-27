@@ -8,7 +8,7 @@ import (
 	"k8s.io/api/admission/v1beta1"
 	"mutating-webhook/common/log"
 
-	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,24 +26,29 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
 	}
 
-	var deployment appsv1.Deployment
-	if err := json.Unmarshal(review.Request.Object.Raw, &deployment); err != nil{
-		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
-	}
-
-	logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, deployment.Name)
-
-	var err error
 	var responseBody []byte
-	status := &metav1.Status{ Status: "Success", Code: http.StatusOK}
-	labels := updateLabels(deployment.Labels, customLabels )
-	responseBody, err = json.Marshal(labels)
-	if err != nil {
-		status = &metav1.Status{Status: "Failure", Message: fmt.Sprintf("could not marshal %v;  %v",labels,err), Reason: "Invalid", Code: http.StatusInternalServerError}
-		logger.Err(err).Msgf("could not marshal %v;  %v",labels,err)
+	status := &metav1.Status{Status: "Failure", Message: fmt.Sprintf("only pod can be mutated"), Reason: "Invalid", Code: http.StatusInternalServerError}
+
+	if review.Request.Kind.Kind == "Pod" {
+		var err error
+
+		var pod corev1.Pod
+
+		if err := json.Unmarshal(review.Request.Object.Raw, &pod); err != nil{
+			return nil,  fmt.Errorf("unmarshaling pod from request failed with %s", err)
+		}
+
+		labels := updateLabels(pod.Labels, customLabels )
+		responseBody, err = json.Marshal(labels)
+		if err != nil {
+			return nil, fmt.Errorf("could not marshal %v;  %v",labels,err)
+		}
+
+		status = &metav1.Status{ Status: "Success", Code: http.StatusOK}
+
+		logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, podName(&pod))
 	}
 
-	logger.Info().Msgf("applying %s",string(responseBody))
 	review.Response =&v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   responseBody,
@@ -61,6 +66,13 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 	return reviewBody,nil
 }
 
+
+func podName(pod *corev1.Pod) string{
+	if pod.Name != "" {
+		return pod.Name
+	}
+	return pod.ObjectMeta.GenerateName
+}
 
 func getLabels(existingLabels map[string]string, added map[string]string) (labels map[string]string) {
 	newMap := make(map[string]string, len(existingLabels) + len(added))

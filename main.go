@@ -47,7 +47,6 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// and write it back
 	if _, err = w.Write(body); err != nil {
 		guards.HttpThrowServerError(w, err, "can't send AdmissionReview")
@@ -80,6 +79,7 @@ func main() {
 	}
 
 	logger.Info().Msgf("Listening on %v:",port)
+	logger.Info().Msgf("%v", labels)
 	err := s.ListenAndServeTLS(certPath,keyPath )
 	guards.FailOnError(err,"server stopped")
 }
