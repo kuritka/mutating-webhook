@@ -58,7 +58,7 @@ run this:
  - [ ] object model, refactor 
  - [ ] put app into new namespace (check with webhook-create-signed-cert.sh )
  - [x] What if label already exists? or no labels?
- - [ ] Configuration of labels would be part of Deployment, check json as envvar 
+ - [x] Configuration of labels would be part of Deployment, check json as envvar 
  - [x] build should inject caBundle, build version and annotation 
  - [x] return Result: &metav1.Status{ Message: err.Error(), }, refactor
 

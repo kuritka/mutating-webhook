@@ -55,7 +55,7 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func readLabels() map[string]string {
+func readLabelConfig() map[string]string {
 	labels := make(map[string]string)
 	labelBase64 := flags.MustGetStringFlagFromEnv(envLabels)
 	labelsJson, err := base64.StdEncoding.DecodeString(labelBase64)
@@ -66,7 +66,7 @@ func readLabels() map[string]string {
 }
 
 func main() {
-	labels = readLabels()
+	labels = readLabelConfig()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", handleMutate)

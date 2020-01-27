@@ -9,23 +9,39 @@ import (
 )
 
 
-//func TestInvalidPod(t *testing.T){
-//	//arrange
-//	//act
-//	result, err := Mutate([]byte(deploymentWithCustomLabel))
-//	review := new(v1beta1.AdmissionReview)
-//	_ = json.Unmarshal(result, review)
-//	//assert
-//	assert.Error(t,err)
-//	assert.Nil(t, result)
-//}
+func TestEmptyLabelsOnPodWithoutLabels(t *testing.T){
+	//arrange
+	labels := map[string]string {}
+	//act
+	result, err := Mutate([]byte(podWithoutLabels), labels)
+	review := new(v1beta1.AdmissionReview)
+	_ = json.Unmarshal(result, review)
+	patch := review.Response.Patch
+	//assert
+	assert.NoError(t,err)
+	assert.Equal(t,`[{"op":"add","path":"/metadata/labels","value":{}}]`, string(patch))
+}
 
 
+
+func TestEmptyLabelsOnDeploymentWithCustomLabels(t *testing.T){
+	//arrange
+	labels := map[string]string {}
+	//act
+	result, err := Mutate([]byte(deploymentWithCustomLabel), labels)
+	review := new(v1beta1.AdmissionReview)
+	_ = json.Unmarshal(result, review)
+	patch := review.Response.Patch
+	//assert
+	assert.NoError(t,err)
+	assert.Equal(t,`[{"op":"remove","path":"/metadata/labels"},{"op":"add","path":"/metadata/labels","value":{"app":"beep","product":"EDTderivates"}}]`, string(patch))
+}
 
 func TestCorruptedJson(t *testing.T){
 	//arrange
+	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
 	//act
-	result, err := Mutate([]byte(corruptedPod))
+	result, err := Mutate([]byte(corruptedPod), labels)
 	//assert
 	assert.Error(t,err)
 	assert.Nil(t, result)
@@ -33,8 +49,9 @@ func TestCorruptedJson(t *testing.T){
 
 func TestDeploymentWithoutCustomLabel(t *testing.T) {
 	//arrange
+	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
 	//act
-	result, err := Mutate([]byte(deploymentWithoutCustomLabel))
+	result, err := Mutate([]byte(deploymentWithoutCustomLabel), labels)
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -47,8 +64,9 @@ func TestDeploymentWithoutCustomLabel(t *testing.T) {
 
 func TestDeploymentWithExistingLabel(t *testing.T) {
 	//arrange
+	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
 	//act
-	result, err := Mutate([]byte(deploymentWithCustomLabel))
+	result, err := Mutate([]byte(deploymentWithCustomLabel), labels)
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch
@@ -59,8 +77,9 @@ func TestDeploymentWithExistingLabel(t *testing.T) {
 
 func TestPodWithoutLabels(t *testing.T) {
 	//arrange
+	labels := map[string]string {"environment":"dev", "product":"cash-services", "cost-center":"60001"}
 	//act
-	result, err := Mutate([]byte(deploymentWithCustomLabel))
+	result, err := Mutate([]byte(deploymentWithCustomLabel), labels)
 	review := new(v1beta1.AdmissionReview)
 	_ = json.Unmarshal(result, review)
 	patch := review.Response.Patch

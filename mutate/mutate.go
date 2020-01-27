@@ -3,8 +3,10 @@ package mutate
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"k8s.io/api/admission/v1beta1"
+	"mutating-webhook/common/log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,27 +18,32 @@ type patchOperation struct {
 	Value     interface{} `json:"value,omitempty"`
 }
 
+var logger = log.Log
 
 func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
-
-	var err error
-	var responseBody []byte
-	status := &metav1.Status{ Status: "Success"}
-
 	review := new(v1beta1.AdmissionReview)
 	if err := json.Unmarshal(body, review); err != nil {
 		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
 	}
 
-
 	var deployment appsv1.Deployment
-	err = json.Unmarshal(review.Request.Object.Raw, &deployment)
-	setStatusOnFail(status,err, "could not unmarshal raw deployment %v",err)
+	if err := json.Unmarshal(review.Request.Object.Raw, &deployment); err != nil{
+		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
+	}
 
+	logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, deployment.Name)
+
+	var err error
+	var responseBody []byte
+	status := &metav1.Status{ Status: "Success", Code: http.StatusOK}
 	labels := updateLabels(deployment.Labels, customLabels )
 	responseBody, err = json.Marshal(labels)
-	setStatusOnFail(status,err, "could not marshal %v;  %v",labels,err)
+	if err != nil {
+		status = &metav1.Status{Status: "Failure", Message: fmt.Sprintf("could not marshal %v;  %v",labels,err), Reason: "Invalid", Code: http.StatusInternalServerError}
+		logger.Err(err).Msgf("could not marshal %v;  %v",labels,err)
+	}
 
+	logger.Info().Msgf("applying %s",string(responseBody))
 	review.Response =&v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   responseBody,
@@ -55,13 +62,6 @@ func Mutate(body []byte, customLabels map[string]string) ([]byte, error){
 }
 
 
-func setStatusOnFail(response *metav1.Status, err error, message string, v ...interface{}){
-	if err != nil {
-		response = &metav1.Status{Status: "Failure", Message: fmt.Sprintf("%s %v", message, v), Reason: "Invalid"}
-	}
-}
-
-
 func getLabels(existingLabels map[string]string, added map[string]string) (labels map[string]string) {
 	newMap := make(map[string]string, len(existingLabels) + len(added))
 	for key, value := range existingLabels {
@@ -73,7 +73,7 @@ func getLabels(existingLabels map[string]string, added map[string]string) (label
 	return newMap
 }
 
-
+//remove all labels and append existing + new
 func updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
 	labels := getLabels(existingLabels,added)
 	if existingLabels != nil {

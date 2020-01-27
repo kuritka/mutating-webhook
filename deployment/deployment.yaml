@@ -4,7 +4,8 @@ kind: ConfigMap
 metadata:
   name: mutating-webhook-configmap
 data:
-  config.labels: "eyJjb3N0LWNlbnRlciI6IjYwMDAxIiwiZW52aXJvbm1lbnQiOiJkZXYiLCJwcm9kdWN0IjoiY2FzaC1zZXJ2aWNlcyIsImNyZWF0b3IiOiJnYTJrdWFsIn0K"
+  config.labels: "eyJjb3N0LWNlbnRlciI6IjYwMDAxIiwiZW52aXJvbm1lbnQiOiJkZXYiLCJwcm9kdWN0IjoiY2FzaC1zZXJ2aWNlcyIsImNyZWF0b3IiOiJnYTJrdWFsIiwgIm93bmVyIjoiZ2Eya3VhbCJ9Cg=="
+#  config.labels: "e30K" #empty label
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -24,6 +25,8 @@ spec:
       labels:
         app: mutating-webhook
     spec:
+      #pod must be running
+      restartPolicy: Always
       containers:
         - name: mutating-webhook
           image: acronhosbx.azurecr.io/mutating-webhook:${tag}

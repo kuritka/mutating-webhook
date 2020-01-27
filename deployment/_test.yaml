@@ -13,7 +13,7 @@ metadata:
   labels:
     app: sleep
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: sleep
@@ -37,7 +37,7 @@ metadata:
     app: beep
     product: EDTderivates
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: beep
