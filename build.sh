@@ -74,12 +74,13 @@ EOF
     check_namespace_exists
 
     caBundle="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')"
-    yaml="$(cat ./deployment/deployment.yaml )"
+    yaml="$(cat ./deployment/webhook-system.yaml )"
     caBundle="$(kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}')"
     buildVersion="$tag"_$(date '+%y%m.%d.%H%M')
     bind="$(echo "$yaml" | sed -e "s|\${tag}|${tag}|g" | sed -e "s|\${caBundle}|${caBundle}|g" | sed -e "s|\${buildVersion}|${buildVersion}|g")"
 
     # in order to download the newest docker from repo, forcing pod to restart and  do not take care if something is deployed or not
+    #ensures that webhook server will be redeployed by each cicd
     kubectl scale deployment mutating-webhook-deployment -n webhook-system `` --replicas=0 2>/dev/null || true
 
 cat <<EOF | kubectl apply -f -

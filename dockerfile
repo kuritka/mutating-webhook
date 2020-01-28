@@ -16,7 +16,7 @@ RUN  go mod vendor  && \
      groupadd -g 1001 webhook && \
      useradd -r -u 1001 -g webhook webhook
 
-#------------------------------------------------------------  << 8MB
+#------------------------------------------------------------  << 20MB
 FROM scratch as release-stage
 
 WORKDIR /app

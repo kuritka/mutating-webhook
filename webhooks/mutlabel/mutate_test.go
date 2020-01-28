@@ -12,6 +12,7 @@ import (
 
 func TestEmptyLabelsOnPodWithoutLabels(t *testing.T){
 	//arrange
+	//empty configuration
 	labels := map[string]string {}
 	ml := NewMutLabel(labels)
 

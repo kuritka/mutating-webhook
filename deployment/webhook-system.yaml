@@ -4,6 +4,7 @@ metadata:
   name: mutating-webhook-configmap
   namespace: webhook-system
 data:
+#                 {"cost-center":"60001","environment":"dev","product":"cash-services","creator":"ga2kual", "owner":"ga2kual"}
   config.labels: "eyJjb3N0LWNlbnRlciI6IjYwMDAxIiwiZW52aXJvbm1lbnQiOiJkZXYiLCJwcm9kdWN0IjoiY2FzaC1zZXJ2aWNlcyIsImNyZWF0b3IiOiJnYTJrdWFsIiwgIm93bmVyIjoiZ2Eya3VhbCJ9Cg=="
 #  config.labels: "e30K" #empty label
 ---
@@ -43,6 +44,14 @@ spec:
                  configMapKeyRef:
                    name: mutating-webhook-configmap
                    key: config.labels
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
       volumes:
         - name: webhook-certs
           secret:

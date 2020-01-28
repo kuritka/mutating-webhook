@@ -17,6 +17,7 @@ import (
 var logger = log.Log
 const
 (
+	//make sure that manifest is updated if you decide to change port
 	port = 8443
 	//I don't expect any changes in volumeMounts that's why I'm keeping paths as constants
 	certPath ="/etc/webhook/certs/cert.pem"
@@ -58,6 +59,12 @@ func handleMutate(w http.ResponseWriter, r *http.Request) {
 }
 
 
+// ExportHealthEndpoint doc
+func handleHealth(w http.ResponseWriter, r *http.Request)  {
+	//logger.Info().Msg("hit /health")
+	w.WriteHeader(http.StatusOK)
+}
+
 func readLabelConfig() map[string]string {
 	labels := make(map[string]string)
 	labelBase64 := flags.MustGetStringFlagFromEnv(envLabels)
@@ -74,6 +81,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate-labels", handleMutate)
+	mux.HandleFunc("/health", handleHealth)
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%v", port),

@@ -43,6 +43,7 @@ spec:
   template:
     metadata:
       labels:
+        #   label configuration  {"cost-center":"60001","environment":"dev","product":"cash-services","creator":"ga2kual", "owner":"ga2kual"}
         app: beep
         product: EDTderivates
         project: Controllers
