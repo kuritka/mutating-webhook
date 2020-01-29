@@ -1,6 +1,5 @@
 package mutlabel
 
-
 const podWithoutCustomLabel = `
 { 
    "kind":"AdmissionReview",
@@ -128,7 +127,6 @@ const podWithoutCustomLabel = `
    }
 }
 `
-
 
 const podWithCustomLabel = `
 { 
@@ -360,8 +358,7 @@ const podWithoutLabels = `
    }
 }`
 
-
-const corruptedPod= `
+const corruptedPod = `
 { 
    "kind:"AdmissionReview",
    "apiVersion":"admission.k8s.io/v1beta1",
@@ -463,8 +460,6 @@ const corruptedPod= `
       "dryRun":false
    }
 }`
-
-
 
 const deploymentWithCustomLabel = `
 { 
@@ -660,5 +655,3 @@ const deploymentWithoutCustomLabel = `
    }
 }
 `
-
-

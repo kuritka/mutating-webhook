@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-
 var logger = log.Log
 
 type patchOperation struct {
@@ -26,18 +25,16 @@ type MutLabel struct {
 	labels map[string]string
 }
 
-
-func NewMutLabel(labels map[string]string) *MutLabel{
+func NewMutLabel(labels map[string]string) *MutLabel {
 	ml := new(MutLabel)
 	ml.labels = labels
 	return ml
 }
 
-
-func (ml *MutLabel) Mutate(body []byte) ([]byte, error){
+func (ml *MutLabel) Mutate(body []byte) ([]byte, error) {
 	review := new(v1beta1.AdmissionReview)
 	if err := json.Unmarshal(body, review); err != nil {
-		return nil,  fmt.Errorf("unmarshaling request failed with %s", err)
+		return nil, fmt.Errorf("unmarshaling request failed with %s", err)
 	}
 
 	var responseBody []byte
@@ -48,22 +45,22 @@ func (ml *MutLabel) Mutate(body []byte) ([]byte, error){
 
 		var pod corev1.Pod
 
-		if err := json.Unmarshal(review.Request.Object.Raw, &pod); err != nil{
-			return nil,  fmt.Errorf("unmarshaling pod from request failed with %s", err)
+		if err := json.Unmarshal(review.Request.Object.Raw, &pod); err != nil {
+			return nil, fmt.Errorf("unmarshaling pod from request failed with %s", err)
 		}
 
 		labels := ml.updateLabels(pod.Labels, ml.labels)
 		responseBody, err = json.Marshal(labels)
 		if err != nil {
-			return nil, fmt.Errorf("could not marshal %v;  %v",labels,err)
+			return nil, fmt.Errorf("could not marshal %v;  %v", labels, err)
 		}
 
-		status = &metav1.Status{ Status: "Success", Code: http.StatusOK}
+		status = &metav1.Status{Status: "Success", Code: http.StatusOK}
 
-		logger.Info().Msgf("applying %s: %s",review.Request.Kind.Kind, ml.getPodName(&pod))
+		logger.Info().Msgf("applying %s: %s", review.Request.Kind.Kind, ml.getPodName(&pod))
 	}
 
-	review.Response =&v1beta1.AdmissionResponse{
+	review.Response = &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Patch:   responseBody,
 		UID:     review.Request.UID,
@@ -77,21 +74,19 @@ func (ml *MutLabel) Mutate(body []byte) ([]byte, error){
 	if err != nil {
 		return nil, fmt.Errorf("cannot create review body %s", err)
 	}
-	return reviewBody,nil
+	return reviewBody, nil
 }
 
-
-func (ml *MutLabel) getPodName(pod *corev1.Pod) string{
+func (ml *MutLabel) getPodName(pod *corev1.Pod) string {
 	if pod.Name != "" {
 		return pod.Name
 	}
 	return pod.ObjectMeta.GenerateName
 }
 
-
 //remove all labels and append existing + new
 func (ml *MutLabel) updateLabels(existingLabels map[string]string, added map[string]string) (patch []patchOperation) {
-	labels := extensions.Union(existingLabels,added)
+	labels := extensions.Union(existingLabels, added)
 	//remove all
 	if existingLabels != nil {
 		patch = append(patch, patchOperation{
